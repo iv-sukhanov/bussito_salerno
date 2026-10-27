@@ -2,40 +2,71 @@
 pragma solidity ^0.8.34;
 
 import {BusTicket} from "./BusTicket.sol";
+import {MockEURC} from "./MockEURC.sol";
 import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract BusTicketTest is Test {
   BusTicket ticket;
+  MockEURC eurc;
 
-  uint256 constant PRICE = 0.001 ether;
+  uint256 constant PRICE = 1_300_000; // 1.30 EUR
+
   address admin = makeAddr("admin");
   address rider = makeAddr("rider");
   address other = makeAddr("other");
 
   function setUp() public {
+    eurc = new MockEURC();
     vm.prank(admin);
-    ticket = new BusTicket(PRICE);
-    vm.deal(rider, 1 ether);
+    ticket = new BusTicket(eurc, PRICE);
+
+    // Fund the rider with 10 EUR and approve the ticket contract to spend it.
+    eurc.mint(rider, 10_000_000);
+    vm.prank(rider);
+    eurc.approve(address(ticket), type(uint256).max);
   }
 
   function _buy() internal returns (uint256) {
     vm.prank(rider);
-    return ticket.buy{value: PRICE}();
+    return ticket.buy();
   }
 
-  function test_BuyMintsTicket() public {
+  // --- Buying ---
+
+  function test_BuyMintsTicketAndTakesPayment() public {
     uint256 id = _buy();
     assertEq(ticket.ownerOf(id), rider);
     assertEq(ticket.balanceOf(rider), 1);
-    assertEq(address(ticket).balance, PRICE);
+    assertEq(eurc.balanceOf(rider), 10_000_000 - PRICE);
+    assertEq(eurc.balanceOf(address(ticket)), PRICE);
   }
 
-  function test_BuyWithWrongPaymentReverts() public {
-    vm.prank(rider);
-    vm.expectRevert(BusTicket.WrongPayment.selector);
-    ticket.buy{value: PRICE - 1}();
+  function test_BuyEmitsEventWithoutAddress() public {
+    vm.expectEmit(address(ticket));
+    emit BusTicket.TicketBought(0);
+    _buy();
   }
+
+  function test_BuyWithoutApprovalReverts() public {
+    eurc.mint(other, PRICE);
+    vm.prank(other);
+    vm.expectRevert(
+      abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, address(ticket), 0, PRICE)
+    );
+    ticket.buy();
+  }
+
+  function test_BuyWithoutEnoughBalanceReverts() public {
+    vm.startPrank(other);
+    eurc.approve(address(ticket), PRICE);
+    vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InsufficientBalance.selector, other, 0, PRICE));
+    ticket.buy();
+    vm.stopPrank();
+  }
+
+  // --- Validation ---
 
   function test_NewTicketIsUnusedAndNotValid() public {
     uint256 id = _buy();
@@ -46,7 +77,7 @@ contract BusTicketTest is Test {
   function test_ValidateMakesTicketValid() public {
     uint256 id = _buy();
     vm.expectEmit(address(ticket));
-    emit BusTicket.TicketValidated(rider, id, block.timestamp + ticket.DURATION());
+    emit BusTicket.TicketValidated(id, block.timestamp + ticket.DURATION());
     vm.prank(rider);
     ticket.validate(id);
     assertTrue(ticket.isValid(id));
@@ -58,6 +89,8 @@ contract BusTicketTest is Test {
     vm.expectRevert(BusTicket.NotTicketOwner.selector);
     ticket.validate(id);
   }
+
+  // --- Single use ---
 
   function test_CannotValidateTwice() public {
     uint256 id = _buy();
@@ -78,6 +111,8 @@ contract BusTicketTest is Test {
     vm.stopPrank();
   }
 
+  // --- Expiry ---
+
   function test_TicketExpiresAfterDuration() public {
     uint256 id = _buy();
     vm.prank(rider);
@@ -90,6 +125,8 @@ contract BusTicketTest is Test {
     assertFalse(ticket.isValid(id));
     assertEq(uint256(ticket.status(id)), uint256(BusTicket.Status.Expired));
   }
+
+  // --- Transfers ---
 
   function test_UnusedTicketCanBeTransferred() public {
     uint256 id = _buy();
@@ -107,12 +144,15 @@ contract BusTicketTest is Test {
     vm.stopPrank();
   }
 
+  // --- Admin ---
+
   function test_OwnerCanWithdraw() public {
+    _buy();
     _buy();
     vm.prank(admin);
     ticket.withdraw();
-    assertEq(admin.balance, PRICE);
-    assertEq(address(ticket).balance, 0);
+    assertEq(eurc.balanceOf(admin), 2 * PRICE);
+    assertEq(eurc.balanceOf(address(ticket)), 0);
   }
 
   function test_NonOwnerCannotWithdraw() public {

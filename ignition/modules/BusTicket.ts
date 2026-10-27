@@ -1,10 +1,13 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
+// Deploys MockEURC and a BusTicket contract that accepts it as payment.
+// The deploying account becomes the BusTicket owner.
 export default buildModule("BusTicketModule", (m) => {
-  // Ticket price in wei, overridable via --parameters
-  const price = m.getParameter("price", 1_000_000_000_000_000n); // 0.001 ETH
+  // Price in the token's smallest unit (6 decimals): 1_300_000 = 1.30 EUR
+  const price = m.getParameter("price", 1_300_000n);
 
-  const busTicket = m.contract("BusTicket", [price]);
+  const eurc = m.contract("MockEURC");
+  const busTicket = m.contract("BusTicket", [eurc, price]);
 
-  return { busTicket };
+  return { eurc, busTicket };
 });
