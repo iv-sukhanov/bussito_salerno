@@ -1,57 +1,73 @@
-# Sample Hardhat 3 Project (`mocha` and `ethers`)
+# Bussito Salerno
 
-This project showcases a Hardhat 3 project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+Blockchain bus tickets for Salerno: buy a ticket (ERC-721) with a euro stablecoin, validate it when boarding, and let a conductor check it.
 
-To learn more about Hardhat 3, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
-
-## Project Overview
-
-This example project includes:
-
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
-
-## Usage
-
-### Running Tests
-
-To run all the tests in the project, execute the following command:
+## 1. Install
 
 ```shell
-npx hardhat test
+npm install
+cd frontend && npm install && cd ..
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+## 2. Run the tests
 
 ```shell
 npx hardhat test solidity
-npx hardhat test mocha
 ```
 
-### Make a deployment to Sepolia
+## 3. Start a local blockchain
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
+In **terminal 1**, keep it running:
 
 ```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+npx hardhat node
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## 4. Deploy the contracts
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+In **terminal 2**:
 
 ```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+npx hardhat ignition deploy ignition/modules/BusTicket.ts --network localhost
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+## 5. Run the demo script (optional)
+
+Runs the whole ticket lifecycle in the terminal: buy, validate, conductor check, expiry, withdraw.
 
 ```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+npx hardhat run scripts/demo.ts --network localhost
 ```
+
+## 6. Start the frontend
+
+In **terminal 3**, keep it running:
+
+```shell
+cd frontend
+npm run dev
+```
+
+Open http://localhost:5173.
+
+## 7. Set up MetaMask (rider view)
+
+1. Import a Hardhat test account into MetaMask. Account #1 private key:
+   `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d`
+   (a public test key, printed by `npx hardhat node`; never use it on a real network).
+2. Click **Connect MetaMask** in the app. It switches to the local network (chain ID 31337) automatically.
+3. Click **Get 10 test EUR**, then **Buy ticket**, then **Validate**.
+
+The **Conductor** tab needs no wallet: enter a ticket ID and the rider's address.
+**Skip 91 min** in the footer moves the local chain clock forward to show a ticket expiring.
+
+## Restarting
+
+`npx hardhat node` starts from an empty chain every time, so after restarting it:
+
+```shell
+rm -rf ignition/deployments/chain-31337
+npx hardhat ignition deploy ignition/modules/BusTicket.ts --network localhost
+```
+
+If MetaMask then shows nonce errors: Settings → Advanced → **Clear activity tab data**.
