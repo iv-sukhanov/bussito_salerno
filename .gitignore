@@ -29,3 +29,6 @@
 
 # Snapshot cheatcodes output
 /snapshots
+
+# Local hardhat node deployments (reset on every node restart)
+/ignition/deployments/chain-31337
