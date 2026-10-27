@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bussito Salerno</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <header>
+      <h1>🚌 Bussito Salerno</h1>
+      <nav>
+        <button class="tab active" data-view="rider">Rider</button>
+        <button class="tab" data-view="conductor">Conductor</button>
+      </nav>
+    </header>
+
+    <main>
+      <p id="setup-error" class="banner error" hidden></p>
+
+      <!-- Rider: needs MetaMask, sends transactions -->
+      <section id="rider" class="view">
+        <div class="card">
+          <div class="row">
+            <span id="account">Not connected</span>
+            <button id="connect">Connect MetaMask</button>
+          </div>
+          <div class="row">
+            <span>Balance: <strong id="balance">–</strong></span>
+            <span>Ticket price: <strong id="price">–</strong></span>
+          </div>
+          <div class="row actions">
+            <button id="faucet" disabled>Get 10 test EUR</button>
+            <button id="buy" class="primary" disabled>Buy ticket</button>
+          </div>
+          <p id="rider-msg" class="msg"></p>
+        </div>
+
+        <h2>My tickets</h2>
+        <ul id="tickets" class="tickets"><li class="empty">Connect your wallet to see tickets.</li></ul>
+      </section>
+
+      <!-- Conductor: read-only, no wallet needed -->
+      <section id="conductor" class="view" hidden>
+        <form id="check-form" class="card">
+          <label>Ticket ID <input id="check-id" type="number" min="0" required /></label>
+          <label>Rider address <input id="check-addr" placeholder="0x…" required /></label>
+          <button class="primary" type="submit">Check ticket</button>
+        </form>
+        <div id="check-result" class="result" hidden></div>
+      </section>
+    </main>
+
+    <footer>
+      <span id="chain-time">Chain time: –</span>
+      <!-- Local-only helper for demos: moves the chain clock forward -->
+      <button id="skip-time" title="Local hardhat node only">Skip 91 min ⏩</button>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
