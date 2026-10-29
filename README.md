@@ -25,7 +25,6 @@ Created by a cross-cultural student team, Bussito Salerno connects **Web3 engine
 **Program:** NEOLAiA Focus Academy 2026  
 **Focus:** Blockchain Application Development · Web3 · International Collaboration
 
-> **Logo setup:** Add your NEOLAiA image to `assets/neolaia.png` in this repository. If it has another name or extension, update the `src` path above. The image is not included in this README file.
 
 ---
 
